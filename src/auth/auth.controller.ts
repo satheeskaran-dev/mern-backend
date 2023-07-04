@@ -5,6 +5,7 @@ import { RegisterDto } from 'src/user/dto/register.dto';
 import { ApiResponseDto } from 'src/common/api-response';
 import { LoginDto } from 'src/user/dto/login.dto';
 import { Request } from 'express';
+import { ActivateDto } from 'src/user/dto/activate.dto';
 
 @Public()
 @Controller('auth')
@@ -14,6 +15,10 @@ export class AuthController {
   @Post('register')
   async register(@Body() registerDto: RegisterDto): Promise<ApiResponseDto> {
     return await this.authService.register(registerDto);
+  }
+  @Post('activate')
+  async activate(@Body() activateDto: ActivateDto): Promise<ApiResponseDto> {
+    return await this.authService.activateUser(activateDto);
   }
 
   @Post('login')

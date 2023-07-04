@@ -19,17 +19,65 @@ import { UserService } from 'src/user/user.service';
 import * as moment from 'moment';
 import { v4 as uuidv4 } from 'uuid';
 import { JwtPayload } from './dto/jwt-payload.dto';
+import { MailService } from 'src/mail/mail.service';
+import { ActivateDto } from 'src/user/dto/activate.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
+    private readonly mailService: MailService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<ApiResponseDto> {
     // const hashedPassword = await bcrypt.hash(registerDto.password, 10);
-    return await this.userService.register(registerDto);
+    // return await this.userService.register(registerDto);
+
+    try {
+      const user = await this.userService.register(registerDto);
+      const token = await this.jwtService.signAsync({
+        email: registerDto.email,
+      });
+
+      user.activateToken = token;
+
+      await user.save();
+      await this.mailService.sendMail(
+        registerDto.email,
+        'Activate link',
+        'activate',
+        { activateLink: 'http://localhost:3000/activate?token=' + token },
+      );
+
+      return new ApiResponseDto(
+        true,
+        HttpStatus.CREATED,
+        'User registered successfully !',
+      );
+    } catch (err) {
+      throw new InternalServerErrorException(
+        new CustomInternalServerErrorException(),
+      );
+    }
+  }
+
+  async activateUser(activateDto: ActivateDto): Promise<ApiResponseDto> {
+    try {
+      const user = await this.userService.activate(activateDto);
+      const hashedPassword = await bcrypt.hash(activateDto.password, 10);
+      user.password = hashedPassword;
+      await user.save();
+      return new ApiResponseDto(
+        true,
+        HttpStatus.OK,
+        'User activate successfully !',
+      );
+    } catch (err) {
+      throw new InternalServerErrorException(
+        new CustomInternalServerErrorException(),
+      );
+    }
   }
 
   async login(loginDto: LoginDto): Promise<ApiResponseDto> {

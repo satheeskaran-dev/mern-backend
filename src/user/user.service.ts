@@ -17,6 +17,7 @@ import {
   CustomInternalServerErrorException,
   CustomNotFoundException,
 } from 'src/common/exceptions';
+import { ActivateDto } from './dto/activate.dto';
 
 @Injectable()
 export class UserService {
@@ -54,7 +55,7 @@ export class UserService {
 
   //   User register service function
 
-  async register(registerDto: RegisterDto): Promise<ApiResponseDto> {
+  async register(registerDto: RegisterDto): Promise<User> {
     const userExist = await this.userModel.findOne({
       email: registerDto.email,
     });
@@ -64,26 +65,23 @@ export class UserService {
         new CustomBadRequestException('Email already exist !'),
       );
 
-    try {
-      const newUser = new this.userModel(registerDto);
-      if (!newUser)
-        throw new NotFoundException(
-          new CustomNotFoundException('User not found !'),
-        );
-
-      const savedUser = await newUser.save();
-
-      if (savedUser)
-        return new ApiResponseDto(
-          true,
-          HttpStatus.CREATED,
-          'User registered successfully !',
-        );
-    } catch (err) {
-      throw new InternalServerErrorException(
-        new CustomInternalServerErrorException(),
+    const newUser = new this.userModel(registerDto);
+    if (!newUser)
+      throw new NotFoundException(
+        new CustomNotFoundException('User not found !'),
       );
-    }
+
+    return newUser;
+  }
+  async activate(activateDto: ActivateDto): Promise<User> {
+    const user = this.userModel
+      .findOne({ activateToken: activateDto.token }, '+password')
+      .exec();
+    if (!user)
+      throw new BadRequestException(
+        new CustomBadRequestException('User not found !'),
+      );
+    return user;
   }
 
   async findByRefreshId(refreshId: string): Promise<User> {
