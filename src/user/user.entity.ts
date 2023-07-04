@@ -21,7 +21,7 @@ export class User extends Document {
   refreshId: string;
 
   @Prop()
-  activateToken: string;
+  activateToken: string = null;
 
   @Prop()
   active: boolean = true;

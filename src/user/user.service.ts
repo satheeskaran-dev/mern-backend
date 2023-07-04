@@ -73,15 +73,20 @@ export class UserService {
 
     return newUser;
   }
-  async activate(activateDto: ActivateDto): Promise<User> {
-    const user = this.userModel
-      .findOne({ activateToken: activateDto.token }, '+password')
-      .exec();
-    if (!user)
-      throw new BadRequestException(
-        new CustomBadRequestException('User not found !'),
-      );
-    return user;
+  async activate(activateDto: ActivateDto): Promise<User | any> {
+    try {
+      const user = await this.userModel
+        .findOne({ activateToken: activateDto.token }, '+password')
+        .exec();
+
+      if (!user)
+        throw new BadRequestException(
+          new CustomBadRequestException('You already used this activate link!'),
+        );
+      return user;
+    } catch (err) {
+      throw err;
+    }
   }
 
   async findByRefreshId(refreshId: string): Promise<User> {

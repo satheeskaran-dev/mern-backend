@@ -33,14 +33,16 @@ export class AuthService {
   async register(registerDto: RegisterDto): Promise<ApiResponseDto> {
     // const hashedPassword = await bcrypt.hash(registerDto.password, 10);
     // return await this.userService.register(registerDto);
+    const user = await this.userService.register(registerDto);
 
     try {
-      const user = await this.userService.register(registerDto);
       const token = await this.jwtService.signAsync({
         email: registerDto.email,
       });
 
       user.activateToken = token;
+
+      console.log('user', user);
 
       await user.save();
       await this.mailService.sendMail(
@@ -63,10 +65,11 @@ export class AuthService {
   }
 
   async activateUser(activateDto: ActivateDto): Promise<ApiResponseDto> {
+    const user = await this.userService.activate(activateDto);
     try {
-      const user = await this.userService.activate(activateDto);
       const hashedPassword = await bcrypt.hash(activateDto.password, 10);
       user.password = hashedPassword;
+      user.activateToken = null;
       await user.save();
       return new ApiResponseDto(
         true,
@@ -81,8 +84,12 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto): Promise<ApiResponseDto> {
+    const user = await this.userService.findByEmail(loginDto.email);
+    if (!user.password)
+      throw new BadRequestException(
+        new CustomBadRequestException(`You haven't register this system !`),
+      );
     try {
-      const user = await this.userService.findByEmail(loginDto.email);
       const isMatch = await bcrypt.compare(loginDto.password, user.password);
       if (!isMatch)
         throw new BadRequestException(
