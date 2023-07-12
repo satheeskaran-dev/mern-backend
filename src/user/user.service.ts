@@ -73,7 +73,7 @@ export class UserService {
 
     return newUser;
   }
-  async activate(activateDto: ActivateDto): Promise<User | any> {
+  async activate(activateDto: ActivateDto): Promise<User> {
     try {
       const user = await this.userModel
         .findOne({ activateToken: activateDto.token }, '+password')

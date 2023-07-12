@@ -69,7 +69,9 @@ export class AuthService {
     try {
       const hashedPassword = await bcrypt.hash(activateDto.password, 10);
       user.password = hashedPassword;
+      user.image = activateDto.image;
       user.activateToken = null;
+
       await user.save();
       return new ApiResponseDto(
         true,

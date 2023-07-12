@@ -14,13 +14,16 @@ export class User extends Document {
   @Prop({ required: true, unique: true })
   email: string;
 
+  @Prop()
+  image: string;
+
   @Prop({ select: false })
   password: string;
 
   @Prop({ select: false })
   refreshId: string;
 
-  @Prop()
+  @Prop({ select: false })
   activateToken: string = null;
 
   @Prop()
