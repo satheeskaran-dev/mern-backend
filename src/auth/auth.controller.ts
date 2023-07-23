@@ -1,3 +1,4 @@
+import { GoogleAuthGuard } from './guards/google-auth-guard';
 import {
   Body,
   Controller,
@@ -5,6 +6,7 @@ import {
   Post,
   Req,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -46,5 +48,15 @@ export class AuthController {
   @Get('refresh')
   async refreshToken(@Req() request: Request): Promise<ApiResponseDto> {
     return await this.authService.refreshToken(request?.headers?.authorization);
+  }
+  @Get('google/login')
+  @UseGuards(GoogleAuthGuard)
+  async handleGoogleLogin() {
+    return { msg: 'athentication ' };
+  }
+  @Get('google/redirect')
+  @UseGuards(GoogleAuthGuard)
+  async handleGoogleRedirect(@Req() req) {
+    return this.authService.googleLogin(req);
   }
 }

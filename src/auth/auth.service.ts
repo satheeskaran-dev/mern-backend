@@ -30,9 +30,19 @@ export class AuthService {
     private readonly mailService: MailService,
   ) {}
 
+  googleLogin(req) {
+    console.log('callback========');
+    if (!req.user) {
+      console.log('callback========');
+      return 'No user from google';
+    }
+    return {
+      message: 'User Info from Google',
+      user: req.user,
+    };
+  }
+
   async register(registerDto: RegisterDto): Promise<ApiResponseDto> {
-    // const hashedPassword = await bcrypt.hash(registerDto.password, 10);
-    // return await this.userService.register(registerDto);
     const user = await this.userService.register(registerDto);
 
     try {
@@ -100,24 +110,24 @@ export class AuthService {
 
       // Generate to attach with token for refresh token purpose
       const refreshExp = moment().add(3, 'minute').unix();
-      const refreshId = uuidv4();
+      const refreshUniqueId = uuidv4();
 
       const payload: JwtPayload = {
         id: user._id,
         email: user.email,
         refreshExp,
-        refreshId,
+        refreshId: refreshUniqueId,
       };
 
       const token = await this.jwtService.signAsync(payload);
 
       //save the unique id to user collection
-      user.refreshId = refreshId;
+      user.refreshId = refreshUniqueId;
       await user.save();
-      const { password, ...userWithoutPassword } = user.toObject();
+      const { password, refreshId, ...restUser } = user.toObject();
 
       return new ApiResponseDto(true, HttpStatus.OK, 'Login successfully !', {
-        user: userWithoutPassword,
+        user: restUser,
         token,
       });
     } catch (err) {
