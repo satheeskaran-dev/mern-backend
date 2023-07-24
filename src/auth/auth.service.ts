@@ -16,11 +16,13 @@ import {
 import { LoginDto } from 'src/user/dto/login.dto';
 import { RegisterDto } from 'src/user/dto/register.dto';
 import { UserService } from 'src/user/user.service';
-import * as moment from 'moment';
-import { v4 as uuidv4 } from 'uuid';
-import { JwtPayload } from './dto/jwt-payload.dto';
 import { MailService } from 'src/mail/mail.service';
 import { ActivateDto } from 'src/user/dto/activate.dto';
+import { Profile } from 'passport-google-oauth20';
+import generateJwtPayload from 'src/utils/helpers/generateJwtPayload';
+import { JwtPayload } from './dto/jwt-payload.dto';
+import moment from 'moment';
+import { User } from 'src/user/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -30,16 +32,22 @@ export class AuthService {
     private readonly mailService: MailService,
   ) {}
 
-  googleLogin(req) {
-    console.log('callback========');
-    if (!req.user) {
-      console.log('callback========');
-      return 'No user from google';
+  async findOrCreateUser(profile: Profile): Promise<User> {
+    const { email, given_name, family_name, picture } = profile._json;
+    console.log('last neame =>', family_name);
+    const user = await this.userService.findByEmailWithoutPassword(email);
+    if (!user) {
+      const registerDetails = {
+        firstName: given_name || '',
+        lastName: family_name || '',
+        image: picture || '',
+        email,
+      };
+
+      return await this.userService.register(registerDetails);
     }
-    return {
-      message: 'User Info from Google',
-      user: req.user,
-    };
+
+    return user;
   }
 
   async register(registerDto: RegisterDto): Promise<ApiResponseDto> {
@@ -51,8 +59,6 @@ export class AuthService {
       });
 
       user.activateToken = token;
-
-      console.log('user', user);
 
       await user.save();
       await this.mailService.sendMail(
@@ -108,21 +114,12 @@ export class AuthService {
           new CustomBadRequestException('You provided password is incorrect !'),
         );
 
-      // Generate to attach with token for refresh token purpose
-      const refreshExp = moment().add(3, 'minute').unix();
-      const refreshUniqueId = uuidv4();
-
-      const payload: JwtPayload = {
-        id: user._id,
-        email: user.email,
-        refreshExp,
-        refreshId: refreshUniqueId,
-      };
+      const payload = generateJwtPayload(user._id, user.email);
 
       const token = await this.jwtService.signAsync(payload);
 
       //save the unique id to user collection
-      user.refreshId = refreshUniqueId;
+      user.refreshId = payload.refreshId;
       await user.save();
       const { password, refreshId, ...restUser } = user.toObject();
 

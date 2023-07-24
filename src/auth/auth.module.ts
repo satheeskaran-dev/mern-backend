@@ -14,7 +14,8 @@ import { SessionSerializer } from './serializers/session-serializer';
   imports: [
     UserModule,
     MailModule,
-    PassportModule,
+    // PassportModule,
+    PassportModule.register({ defaultStrategy: 'google' }),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -26,6 +27,6 @@ import { SessionSerializer } from './serializers/session-serializer';
   ],
   controllers: [AuthController],
   exports: [AuthService],
-  providers: [AuthService, JwtStrategy, GoogleStrategy, SessionSerializer],
+  providers: [AuthService, JwtStrategy, GoogleStrategy],
 })
 export class AuthModule {}

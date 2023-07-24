@@ -40,6 +40,11 @@ export class UserService {
     );
   }
 
+  async findByEmailWithoutPassword(email: string): Promise<User | null> {
+    const user = await this.userModel.findOne({ email }).exec();
+    return user ?? null;
+  }
+
   async findByEmail(email: string): Promise<User> {
     try {
       const user = await this.userModel.findOne({ email }, '+password').exec();
@@ -56,6 +61,7 @@ export class UserService {
   //   User register service function
 
   async register(registerDto: RegisterDto): Promise<User> {
+    console.log('inside register =>', registerDto);
     const userExist = await this.userModel.findOne({
       email: registerDto.email,
     });
@@ -73,6 +79,7 @@ export class UserService {
 
     return newUser;
   }
+
   async activate(activateDto: ActivateDto): Promise<User> {
     try {
       const user = await this.userModel

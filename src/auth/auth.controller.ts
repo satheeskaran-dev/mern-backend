@@ -1,10 +1,11 @@
-import { GoogleAuthGuard } from './guards/google-auth-guard';
+// import { GoogleAuthGuard } from './guards/google-auth-guard';
 import {
   Body,
   Controller,
   Get,
   Post,
   Req,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -18,6 +19,7 @@ import { Request } from 'express';
 import { ActivateDto } from 'src/user/dto/activate.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { saveImageToStorage } from 'src/utils/helpers/imageStorage';
+import { AuthGuard } from '@nestjs/passport';
 
 @Public()
 @Controller('auth')
@@ -50,13 +52,19 @@ export class AuthController {
     return await this.authService.refreshToken(request?.headers?.authorization);
   }
   @Get('google/login')
-  @UseGuards(GoogleAuthGuard)
+  @UseGuards(AuthGuard('google'))
   async handleGoogleLogin() {
     return { msg: 'athentication ' };
   }
   @Get('google/redirect')
-  @UseGuards(GoogleAuthGuard)
-  async handleGoogleRedirect(@Req() req) {
-    return this.authService.googleLogin(req);
+  @UseGuards(AuthGuard('google'))
+  async handleGoogleRedirect(@Req() req, @Res() res) {
+    // Include the user details in the response
+    const user = req.user;
+    res.redirect(
+      `http://localhost:3000/sso/google?data=${encodeURIComponent(
+        JSON.stringify(user),
+      )}`,
+    );
   }
 }
