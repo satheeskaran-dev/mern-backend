@@ -8,7 +8,6 @@ import { ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { MailModule } from 'src/mail/mail.module';
 import { GoogleStrategy } from './strategies/google.strategy';
-import { SessionSerializer } from './serializers/session-serializer';
 
 @Module({
   imports: [

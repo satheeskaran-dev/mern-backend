@@ -23,6 +23,7 @@ import generateJwtPayload from 'src/utils/helpers/generateJwtPayload';
 import { JwtPayload } from './dto/jwt-payload.dto';
 import moment from 'moment';
 import { User } from 'src/user/user.entity';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
@@ -30,17 +31,18 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
+    private readonly config: ConfigService,
   ) {}
 
   async findOrCreateUser(profile: Profile): Promise<User> {
     const { email, given_name, family_name, picture } = profile._json;
-    console.log('last neame =>', family_name);
+
     const user = await this.userService.findByEmailWithoutPassword(email);
     if (!user) {
       const registerDetails = {
         firstName: given_name || '',
         lastName: family_name || '',
-        image: picture || '',
+        image: picture || null,
         email,
       };
 
@@ -60,12 +62,17 @@ export class AuthService {
 
       user.activateToken = token;
 
-      await user.save();
+      const savedUser = await user.save();
+      console.log('user obj=>', savedUser);
       await this.mailService.sendMail(
         registerDto.email,
         'Activate link',
         'activate',
-        { activateLink: 'http://localhost:3000/activate?token=' + token },
+        {
+          activateLink:
+            this.config.get('FRONTEND_BASE_URL') +
+            `/activate?user=${encodeURIComponent(JSON.stringify(savedUser))}`,
+        },
       );
 
       return new ApiResponseDto(
@@ -85,8 +92,10 @@ export class AuthService {
     try {
       const hashedPassword = await bcrypt.hash(activateDto.password, 10);
       user.password = hashedPassword;
-      user.image = activateDto.image;
+      user.firstName = activateDto.firstName;
+      user.lastName = activateDto.lastName;
       user.activateToken = null;
+      if (activateDto.image) user.image = activateDto.image;
 
       await user.save();
       return new ApiResponseDto(

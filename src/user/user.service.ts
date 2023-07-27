@@ -2,9 +2,7 @@ import {
   Injectable,
   HttpStatus,
   BadRequestException,
-  InternalServerErrorException,
   NotFoundException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { User, UserDocument } from './user.entity';
 import { InjectModel } from '@nestjs/mongoose';
@@ -13,8 +11,6 @@ import { RegisterDto } from './dto/register.dto';
 import { ApiResponseDto } from 'src/common/api-response';
 import {
   CustomBadRequestException,
-  CustomException,
-  CustomInternalServerErrorException,
   CustomNotFoundException,
 } from 'src/common/exceptions';
 import { ActivateDto } from './dto/activate.dto';
@@ -61,20 +57,32 @@ export class UserService {
   //   User register service function
 
   async register(registerDto: RegisterDto): Promise<User> {
-    console.log('inside register =>', registerDto);
-    const userExist = await this.userModel.findOne({
-      email: registerDto.email,
-    });
+    const userExist = await this.userModel.findOne(
+      {
+        email: registerDto.email,
+      },
+      '+password',
+    );
 
-    if (userExist)
+    if (userExist?.password)
       throw new BadRequestException(
-        new CustomBadRequestException('Email already exist !'),
+        new CustomBadRequestException(
+          'You have already registered please login !',
+        ),
       );
+    if (userExist && !userExist?.password) {
+      const ssoUser = await this.userModel.findByIdAndUpdate(
+        userExist._id,
+        registerDto,
+        { new: true },
+      );
+      return ssoUser;
+    }
 
     const newUser = new this.userModel(registerDto);
     if (!newUser)
       throw new NotFoundException(
-        new CustomNotFoundException('User not found !'),
+        new CustomNotFoundException('Registration failed !'),
       );
 
     return newUser;
@@ -88,7 +96,9 @@ export class UserService {
 
       if (!user)
         throw new BadRequestException(
-          new CustomBadRequestException('You already used this activate link!'),
+          new CustomBadRequestException(
+            'This account already activated please login !',
+          ),
         );
       return user;
     } catch (err) {
